@@ -1,1 +1,203 @@
 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIME & MOVIE HUB</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#090b14;color:white;
+ font-family:Arial,sans-serif;
+}
+header{
+ padding:22px 16px;
+ background:#111526;
+ border-bottom:1px solid #292d42;
+}
+.logo{font-size:24px;font-weight:bold;color:#a78bfa}
+.logo span{color:#fff}
+nav{display:flex;gap:20px;margin-top:18px}
+nav a{color:#ccc;text-decoration:none}
+.hero{
+ padding:35px 20px;
+ background:linear-gradient(135deg,#24104c,#111526,#351344);
+}
+.hero h1{font-size:30px}
+.hero p{color:#ddd;line-height:1.5}
+button{
+ background:#8b5cf6;color:white;border:0;
+ padding:12px 18px;border-radius:9px;
+ font-weight:bold;cursor:pointer;
+}
+.search{padding:20px 16px}
+input{
+ width:100%;padding:15px;border-radius:10px;
+ border:1px solid #373b52;background:#171b2c;
+ color:white;font-size:16px;
+}
+.categories{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.categories button{background:#24283c}
+.categories button.active{background:#8b5cf6}
+h2{padding:0 16px}
+.grid{
+ display:grid;grid-template-columns:repeat(2,1fr);
+ gap:14px;padding:0 14px 25px;
+}
+.card{
+ background:#171b2b;border-radius:12px;
+ overflow:hidden;border:1px solid #292e44;
+}
+.poster{
+ height:155px;display:flex;align-items:center;
+ justify-content:center;font-size:60px;
+ background:linear-gradient(145deg,#41206d,#161d3b);
+}
+.card:nth-child(3n+2) .poster{
+ background:linear-gradient(145deg,#75264e,#211631)
+}
+.card:nth-child(3n) .poster{
+ background:linear-gradient(145deg,#15546a,#17213e)
+}
+.info{padding:12px}
+.info h3{margin:0 0 8px;font-size:16px}
+.info p{color:#aaa;font-size:12px}
+.info button{padding:9px;font-size:12px;width:100%}
+footer{text-align:center;padding:25px;color:#888}
+.modal{
+ display:none;position:fixed;inset:0;
+ background:#000d;align-items:center;
+ justify-content:center;padding:20px;
+}
+.modal-content{
+ background:#171b2b;padding:22px;
+ border-radius:15px;width:100%;max-width:400px;
+}
+.close{float:right;background:#333}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">ANIME <span>& MOVIE HUB</span></div>
+ <nav>
+  <a href="#home">Главная</a>
+  <a href="#anime">Аниме</a>
+  <a href="#movies">Фильмы</a>
+  <a href="#favorites">Избранное</a>
+ </nav>
+</header>
+
+<section class="hero" id="home">
+ <h1>Твой мир кино и аниме 🍿</h1>
+ <p>Открывай новые истории, находи любимых персонажей и сохраняй лучшие фильмы.</p>
+ <button onclick="document.getElementById('anime').scrollIntoView()">Начать поиск</button>
+</section>
+
+<section class="search">
+ <input id="search" placeholder="🔍 Найти аниме или фильм..."
+ oninput="render()">
+ <div class="categories">
+  <button class="active" onclick="setFilter('all',this)">Все</button>
+  <button onclick="setFilter('anime',this)">Аниме</button>
+  <button onclick="setFilter('movie',this)">Фильмы</button>
+ </div>
+</section>
+
+<h2 id="anime">🔥 Популярное</h2>
+<div class="grid" id="catalog"></div>
+
+<h2 id="favorites">⭐ Избранное</h2>
+<div class="grid" id="saved"></div>
+
+<footer>
+ ANIME & MOVIE HUB © 2026
+ <p>Твой мир развлечений ❤️</p>
+</footer>
+
+<div class="modal" id="modal">
+ <div class="modal-content">
+  <button class="close" onclick="closeModal()">Закрыть ✕</button>
+  <h2 id="detailTitle"></h2>
+  <p id="detailText"></p>
+  <p id="detailType"></p>
+  <a id="trailer" target="_blank" style="color:#c4b5fd">Найти официальный трейлер ↗</a>
+ </div>
+</div>
+
+<script>
+const items=[
+ {name:"Demon Slayer",type:"anime",emoji:"⚔️",desc:"История Тандзиро Камадо, который сражается с демонами."},
+ {name:"Naruto",type:"anime",emoji:"🍥",desc:"История ниндзя, мечтающего стать Хокаге."},
+ {name:"Solo Leveling",type:"anime",emoji:"🌑",desc:"Сон Джин Ву становится сильнейшим охотником."},
+ {name:"Attack on Titan",type:"anime",emoji:"🛡️",desc:"Люди борются за выживание против титанов."},
+ {name:"Jujutsu Kaisen",type:"anime",emoji:"👹",desc:"Юдзи Итадори вступает в мир проклятий."},
+ {name:"One Piece",type:"anime",emoji:"🏴‍☠️",desc:"Приключения Луффи в поисках великого сокровища."},
+ {name:"Interstellar",type:"movie",emoji:"🚀",desc:"Космическое путешествие ради будущего человечества."},
+ {name:"Avatar",type:"movie",emoji:"🌌",desc:"Путешествие на удивительную планету Пандора."},
+ {name:"The Batman",type:"movie",emoji:"🦇",desc:"История защитника Готэма."},
+ {name:"Spider-Man",type:"movie",emoji:"🕷️",desc:"Приключения человека-паука."}
+];
+
+let filter="all";
+let favorites=JSON.parse(localStorage.getItem("favorites")||"[]");
+
+function card(item){
+ return `<div class="card">
+ <div class="poster">${item.emoji}</div>
+ <div class="info">
+ <h3>${item.name}</h3>
+ <p>${item.type==="anime"?"⚔️ Аниме":"🎬 Фильм"}</p>
+ <button onclick="details('${item.name}')">Подробнее</button>
+ <button style="margin-top:7px;background:#30364e"
+ onclick="toggleFav('${item.name}')">
+ ${favorites.includes(item.name)?"★ В избранном":"☆ В избранное"}
+ </button>
+ </div></div>`;
+}
+
+function render(){
+ const q=document.getElementById("search").value.toLowerCase();
+ let found=items.filter(x=>
+ (filter==="all"||x.type===filter)&&
+ x.name.toLowerCase().includes(q)
+ );
+ document.getElementById("catalog").innerHTML=
+ found.length?found.map(card).join(""):"<p>Ничего не найдено.</p>";
+ let saved=items.filter(x=>favorites.includes(x.name));
+ document.getElementById("saved").innerHTML=
+ saved.length?saved.map(card).join(""):"<p style='padding:15px;color:#aaa'>Здесь пока пусто.</p>";
+}
+
+function setFilter(type,btn){
+ filter=type;
+ document.querySelectorAll(".categories button").forEach(b=>b.classList.remove("active"));
+ btn.classList.add("active");
+ render();
+}
+
+function toggleFav(name){
+ if(favorites.includes(name)){
+ favorites=favorites.filter(x=>x!==name);
+ }else{favorites.push(name)}
+ localStorage.setItem("favorites",JSON.stringify(favorites));
+ render();
+}
+
+function details(name){
+ let x=items.find(i=>i.name===name);
+ document.getElementById("detailTitle").textContent=x.name;
+ document.getElementById("detailText").textContent=x.desc;
+ document.getElementById("detailType").textContent=x.type==="anime"?"Аниме":"Фильм";
+ document.getElementById("trailer").href=
+ "https://www.youtube.com/results?search_query="+encodeURIComponent(x.name+" official trailer");
+ document.getElementById("modal").style.display="flex";
+}
+function closeModal(){
+ document.getElementById("modal").style.display="none";
+}
+render();
+</script>
+</body>
+  </html>
